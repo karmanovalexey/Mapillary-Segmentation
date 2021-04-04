@@ -63,8 +63,8 @@ def val(args, model, part=1., mode='val', epoch=None):
     color_transform = Colorize(NUM_CLASSES)
 
     #Must load weights, optimizer, epoch and best value.
-    savedir = f'./save/{args.model_dir}'
-    file_resume = savedir + '/model-{}.pth'.format(get_last_state(savedir))
+    file_resume = f'{args.model_path}'
+    #file_resume = savedir + '/model-{}.pth'.format(get_last_state(savedir))
     assert os.path.exists(file_resume), "No model checkpoint found"
     checkpoint = torch.load(file_resume)
     model.load_state_dict(checkpoint['model'])
@@ -124,6 +124,6 @@ if __name__ == '__main__':
     parser.add_argument('--model', choices=['erfnet', 'unet', 'deeplab', 'resnet_oc'], help='Tell me what to train')
     parser.add_argument('--height', type=int, default=1080, help='Height of images, nothing to add')
     parser.add_argument('--batch-size', type=int, default=1)
-    parser.add_argument('--model-dir', required=True, help='Where to load your model from')
+    parser.add_argument('--model-path', required=True, help='Where to load your model from')
     parser.add_argument('--project-name', default='Evaluation', help='Project name for weights and Biases')
     main(parser.parse_args())
