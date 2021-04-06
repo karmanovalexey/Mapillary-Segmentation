@@ -81,6 +81,7 @@ def train(args, model):
 
         model.train()
         for step, (images, labels) in enumerate(loader):
+            if step > 202: break
             start_time = time.time()
 
             images = images.cuda()
@@ -101,12 +102,14 @@ def train(args, model):
 
             if step % 200 == 0:
                 average = sum(epoch_loss) / len(epoch_loss)
-                wandb.log({"epoch":epoch, "loss":average}, step=(epoch-1)*18000 + step)
+                wandb.log({"epoch":epoch, "loss":loss.data.item()}, step=(epoch-1)*18000 + step)
                 print(f'loss: {average:0.4} (epoch: {epoch}, step: {step})', 
                         "// Avg time/img: %.4f s" % (sum(time_train) / len(time_train) / args.batch_size))
 
-        filename = f'{savedir}/model-{epoch}.pth'
+        val_res = val(args, model, part=0.05)
+        print('Val results:', val_res)
         if args.epochs_save > 0 and epoch > 0 and epoch % args.epochs_save == 0:
+            filename = f'{savedir}/model-{epoch}.pth'
             torch.save({'model':model.state_dict(), 'opt':optimizer.state_dict(), 'epoch':epoch}, filename)
             print(f'save: {filename} (epoch: {epoch})')
 
