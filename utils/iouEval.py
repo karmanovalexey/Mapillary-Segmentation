@@ -4,13 +4,14 @@
 #######################
 
 import torch
-
+import numpy as np
 class iouEval:
 
     def __init__(self, nClasses, ignoreIndex=65):
         self.nClasses = nClasses
         self.ignoreIndex = ignoreIndex if nClasses>ignoreIndex else -1 #if ignoreIndex is larger than nClasses, consider no ignoreIndex
         self.reset()
+        self.iu = []
 
     def reset (self):
         classes = self.nClasses if self.ignoreIndex==-1 else self.nClasses-1

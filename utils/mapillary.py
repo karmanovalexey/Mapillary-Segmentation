@@ -2,9 +2,9 @@ import numpy as np
 import os
 import random
 
-from torchvision.transforms import Compose, CenterCrop, Normalize, Resize, Pad
+from torchvision.transforms import Compose, CenterCrop, Normalize, Resize, Pad, InterpolationMode
 from torchvision.transforms import ToTensor, ToPILImage
-from transform import Relabel, ToLabel, Colorize
+from .transform import Relabel, ToLabel, Colorize
 
 from PIL import Image, ImageOps
 
@@ -24,14 +24,18 @@ def image_path(root, name):
 
 
 class MyCoTransform(object):
-    def __init__(self, augment=True, height=512):
+    def __init__(self, augment=True, height=600):
         self.augment = augment
         self.height = height
         pass
     def __call__(self, input, target):
         # do something to both images
-        input =  Resize(self.height, Image.BILINEAR)(input)
-        target = Resize(self.height, Image.NEAREST)(target)
+        if self.height == 1080:
+            input =  Resize((1080,1920), InterpolationMode.BILINEAR)(input)
+            target = Resize((1080,1920), InterpolationMode.NEAREST)(target)
+        else:
+            input =  Resize((self.height,self.height*2), InterpolationMode.BILINEAR)(input)
+            target = Resize((self.height,self.height*2), InterpolationMode.NEAREST)(target)
 
         if(self.augment):
             # Random hflip
@@ -50,6 +54,8 @@ class MyCoTransform(object):
             target = target.crop((0, 0, target.size[0]-transX, target.size[1]-transY))   
 
         input = ToTensor()(input)
+        input = Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])(input)
         target = ToLabel()(target)
         target = Relabel(255, 65)(target)
 
@@ -57,7 +63,7 @@ class MyCoTransform(object):
 
 class mapillary(Dataset):
 
-    def __init__(self, root, subset='train', height=1080, part=1.):
+    def __init__(self, root, subset='train', height=600, part=1.):
         self.images_root = os.path.join(root, subset)
         self.labels_root = os.path.join(root, subset)
         
@@ -91,7 +97,6 @@ class mapillary(Dataset):
 
         image, label = self.co_transform(input=image, target=label)
 
-        # torch.from_numpy(np.array(image)).long().unsqueeze(0)
         return image, label
 
     def __len__(self):
