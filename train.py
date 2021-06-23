@@ -46,7 +46,7 @@ class CrossEntropyLoss2d(torch.nn.Module):
 def train(args, model):
     assert os.path.exists(args.data_dir), "Error: datadir (dataset directory) could not be loaded"
 
-    dataset_train = mapillary(args.data_dir, 'train', height=args.height, part=1)
+    dataset_train = mapillary(args.data_dir, 'train', height=args.height, part=0.001)
     loader = DataLoader(dataset_train, num_workers=4, batch_size=args.batch_size, shuffle=True)
     print('Loaded', len(loader), 'files')
 

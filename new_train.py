@@ -4,6 +4,7 @@ import os
 import time
 import glob
 import re
+import numpy as np
 
 from argparse import ArgumentParser
 from tqdm import tqdm
@@ -19,18 +20,9 @@ NUM_CLASSES = 66
 
 def get_model(model_name, pretrained=False):
     if model_name == 'deeplab':
-        return DeepLab(backbone='resnet', output_stride=16, num_classes=NUM_CLASSES, sync_bn=False, freeze_bn=False)
+        return DeepLab(backbone='mobilenet', output_stride=16, num_classes=NUM_CLASSES, sync_bn=False, freeze_bn=False)
     else:
         raise NotImplementedError('Unknown model')
-
-def get_last_state(path):
-    list_of_files = glob.glob(path + "/model-*.pth")
-    max=0
-    for file in list_of_files:
-        num = int(re.search(r'model-(\d*)', file).group(1))  
-
-        max = num if num > max else max 
-    return max
 
 def train(args):
     #Get training data
@@ -48,14 +40,14 @@ def train(args):
 
     optimizer = Adam(model.parameters(), 3e-4, (0.9, 0.999),  eps=1e-08, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer,
-                                                     lambda x: (1 - x / (len(loader) * args.num_epochs)) ** 0.9)
+                                                     lambda x: (1 - x/args.num_epochs) ** 0.9)
 
     
     start_epoch = 1
     best_metric = 0
     if args.resume:
         #Must load weights, optimizer, epoch and best value.
-        file_resume = savedir + '/model-{}.pth'.format(get_last_state(savedir))
+        file_resume = savedir + '/{}.pth'.format(args.model)
         
         assert os.path.exists(file_resume), "Error: resume option was used but checkpoint was not found in folder"
         checkpoint = torch.load(file_resume)
@@ -68,12 +60,10 @@ def train(args):
     for epoch in range(start_epoch, args.num_epochs+1):
         print("----- TRAINING - EPOCH", epoch, "-----")
 
-        epoch_loss = []
-        time_train = []
+        patch_loss = []
 
         model.train()
         for step, (images, labels) in enumerate(tqdm(loader)):
-            start_time = time.time()
 
             inputs = images.to(device=args.device)
             targets = labels.to(device=args.device)
@@ -85,11 +75,11 @@ def train(args):
             loss.backward()
             optimizer.step()
 
-            epoch_loss.append(loss.data.item())
-            time_train.append(time.time() - start_time)
-            if step % 100 == 0:
-                average = sum(epoch_loss) / len(epoch_loss)
+            patch_loss.append(loss.data.item())
+            if (step % 100 == 0) and (step != 0):
+                average = np.mean(patch_loss)
                 wandb.log({"epoch":epoch, "loss":average, 'lr':scheduler.get_last_lr()[0]}, step=(epoch-1)*18000 + step*args.batch_size)
+                patch_loss = []
         
         scheduler.step()
 
