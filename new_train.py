@@ -43,7 +43,7 @@ def train(args):
                                                      lambda x: (1 - x/args.num_epochs) ** 0.9)
 
     
-    start_epoch = 1
+    start_epoch = 45
     best_metric = 0
     if args.resume:
         #Must load weights, optimizer, epoch and best value.
@@ -51,7 +51,8 @@ def train(args):
         
         assert os.path.exists(file_resume), "Error: resume option was used but checkpoint was not found in folder"
         checkpoint = torch.load(file_resume)
-        start_epoch = checkpoint['epoch'] + 1
+        # start_epoch = checkpoint['epoch'] + 1
+        # best_metric = checkpoint['best_iou']
         optimizer.load_state_dict(checkpoint['opt'])
         model.load_state_dict(checkpoint['model'])
         scheduler.load_state_dict(checkpoint['scheduler'])
@@ -90,7 +91,7 @@ def train(args):
             best_metric = float(last_metric['iou'])
             #if args.epochs_save > 0 and epoch > 0 and epoch % args.epochs_save == 0:
             filename = f'{savedir}/{args.model}.pth'
-            torch.save({'model':model.state_dict(), 'opt':optimizer.state_dict(),'scheduler':scheduler.state_dict(), 'epoch':epoch}, filename)
+            torch.save({'model':model.state_dict(), 'opt':optimizer.state_dict(),'scheduler':scheduler.state_dict(), 'epoch':epoch, 'best_iou':best_metric}, filename)
             print(f'save: {filename} (epoch: {epoch})')
     
     return
