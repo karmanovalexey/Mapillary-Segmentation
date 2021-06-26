@@ -11,6 +11,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 from deeplab.deeplab import DeepLab
+from unet import UNet
 
 from new_val import val
 from utils.mapillary import mapillary
@@ -21,6 +22,8 @@ NUM_CLASSES = 66
 def get_model(model_name, pretrained=False):
     if model_name == 'deeplab':
         return DeepLab(backbone='mobilenet', output_stride=16, num_classes=NUM_CLASSES, sync_bn=False, freeze_bn=False)
+    if model_name =='unet':
+        return UNet(3,NUM_CLASSES)
     else:
         raise NotImplementedError('Unknown model')
 
@@ -43,7 +46,7 @@ def train(args):
                                                      lambda x: (1 - x/args.num_epochs) ** 0.9)
 
     
-    start_epoch = 45
+    start_epoch = 0
     best_metric = 0
     if args.resume:
         #Must load weights, optimizer, epoch and best value.
@@ -51,8 +54,8 @@ def train(args):
         
         assert os.path.exists(file_resume), "Error: resume option was used but checkpoint was not found in folder"
         checkpoint = torch.load(file_resume)
-        # start_epoch = checkpoint['epoch'] + 1
-        # best_metric = checkpoint['best_iou']
+        start_epoch = checkpoint['epoch'] + 1
+        best_metric = checkpoint['best_iou']
         optimizer.load_state_dict(checkpoint['opt'])
         model.load_state_dict(checkpoint['model'])
         scheduler.load_state_dict(checkpoint['scheduler'])
@@ -126,7 +129,7 @@ if __name__== '__main__':
     parser = ArgumentParser()
     
     parser.add_argument('--data-dir', required=True, help='Mapillary directory')
-    parser.add_argument('--model', required=True, choices=['deeplab'], help='Tell me what to train')
+    parser.add_argument('--model', required=True, choices=['deeplab', 'unet'], help='Tell me what to train')
     parser.add_argument('--loss', default='BCE', help='Loss name, either BCE or Focal')
     parser.add_argument('--height', type=int, default=600, help='Height of images, nothing to add')
     parser.add_argument('--num-epochs', type=int, default=10, help='If you use resume, give a number considering for how long it trained')

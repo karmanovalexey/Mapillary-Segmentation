@@ -7,8 +7,9 @@ import torch
 import numpy as np
 class iouEval:
 
-    def __init__(self, nClasses, ignoreIndex=65):
+    def __init__(self, nClasses, device, ignoreIndex=65):
         self.nClasses = nClasses
+        self.device = device
         self.ignoreIndex = ignoreIndex if nClasses>ignoreIndex else -1 #if ignoreIndex is larger than nClasses, consider no ignoreIndex
         self.reset()
         self.iu = []
@@ -28,14 +29,14 @@ class iouEval:
         #print(x.shape)
         #print(y.shape)
         if (x.is_cuda or y.is_cuda):
-            x = x.cuda()
-            y = y.cuda()
+            x = x.to(device=self.device)
+            y = y.to(device=self.device)
 
         #if size is "batch_size x 1 x H x W" scatter to onehot
         if (x.size(1) == 1):
             x_onehot = torch.zeros(x.size(0), self.nClasses, x.size(2), x.size(3))  
             if x.is_cuda:
-                x_onehot = x_onehot.cuda()
+                x_onehot = x_onehot.to(device=self.device)
             x_onehot.scatter_(1, x, 1).float()
         else:
             x_onehot = x.float()
@@ -43,7 +44,7 @@ class iouEval:
         if (y.size(1) == 1):
             y_onehot = torch.zeros(y.size(0), self.nClasses, y.size(2), y.size(3))
             if y.is_cuda:
-                y_onehot = y_onehot.cuda()
+                y_onehot = y_onehot.to(device=self.device)
             y_onehot.scatter_(1, y, 1).float()
         else:
             y_onehot = y.float()
